@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import Link from 'next/link'
 import ReserveButton from './components/ReserveButton'
 
 export const dynamic = 'force-dynamic'
@@ -16,7 +17,12 @@ export default async function ProductsPage() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold mb-1">Allo Inventory</h1>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-2xl font-bold">Allo Inventory</h1>
+        <Link href="/reservations" className="text-sm text-indigo-600 hover:underline">
+          View reservations →
+        </Link>
+      </div>
       <p className="text-sm text-gray-500 mb-8">
         Reserve a product to hold your unit for 10 minutes while you complete payment.
       </p>
