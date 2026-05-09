@@ -1,11 +1,22 @@
 import type { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getIdempotentResponse, saveIdempotentResponse } from '@/lib/idempotency'
+
+const ENDPOINT = 'POST /api/reservations/[id]/confirm'
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: RouteContext<'/api/reservations/[id]/confirm'>
 ) {
   const { id } = await ctx.params
+  const idempotencyKey = req.headers.get('Idempotency-Key')
+
+  if (idempotencyKey) {
+    const cached = await getIdempotentResponse(idempotencyKey, ENDPOINT)
+    if (cached) {
+      return Response.json(cached.responseBody, { status: cached.statusCode })
+    }
+  }
 
   const reservation = await prisma.reservation.findUnique({ where: { id } })
 
@@ -21,10 +32,7 @@ export async function POST(
   }
 
   if (reservation.expiresAt < new Date()) {
-    return Response.json(
-      { error: 'Reservation has expired.' },
-      { status: 410 }
-    )
+    return Response.json({ error: 'Reservation has expired.' }, { status: 410 })
   }
 
   const [confirmed] = await prisma.$transaction([
@@ -32,7 +40,6 @@ export async function POST(
       where: { id },
       data: { status: 'CONFIRMED' },
     }),
-    // decrement both reserved (hold lifted) and total (units permanently sold)
     prisma.stock.update({
       where: {
         productId_warehouseId: {
@@ -46,6 +53,10 @@ export async function POST(
       },
     }),
   ])
+
+  if (idempotencyKey) {
+    await saveIdempotentResponse(idempotencyKey, ENDPOINT, 200, confirmed, id)
+  }
 
   return Response.json(confirmed)
 }

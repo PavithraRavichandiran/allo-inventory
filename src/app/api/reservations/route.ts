@@ -1,13 +1,26 @@
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { acquireLock, releaseLock } from '@/lib/redis'
 import { ReserveRequestSchema } from '@/lib/schemas'
+import { getIdempotentResponse, saveIdempotentResponse } from '@/lib/idempotency'
+
+const ENDPOINT = 'POST /api/reservations'
 
 export async function POST(request: Request) {
+  const idempotencyKey = request.headers.get('Idempotency-Key')
+
+  if (idempotencyKey) {
+    const cached = await getIdempotentResponse(idempotencyKey, ENDPOINT)
+    if (cached) {
+      return Response.json(cached.responseBody, { status: cached.statusCode })
+    }
+  }
+
   const body = await request.json()
   const parsed = ReserveRequestSchema.safeParse(body)
 
   if (!parsed.success) {
-    return Response.json({ error: parsed.error.flatten() }, { status: 400 })
+    return Response.json({ error: z.flattenError(parsed.error) }, { status: 400 })
   }
 
   const { productId, warehouseId, quantity } = parsed.data
@@ -46,6 +59,10 @@ export async function POST(request: Request) {
         data: { reserved: { increment: quantity } },
       }),
     ])
+
+    if (idempotencyKey) {
+      await saveIdempotentResponse(idempotencyKey, ENDPOINT, 201, reservation, reservation.id)
+    }
 
     return Response.json(reservation, { status: 201 })
   } finally {
