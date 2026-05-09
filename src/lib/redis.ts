@@ -34,8 +34,8 @@ export async function releaseLock(key: string): Promise<void> {
 export async function acquireLockWithRetry(
   key: string,
   ttlMs = 10_000,
-  maxAttempts = 6,
-  retryDelayMs = 100
+  maxAttempts = 20,
+  retryDelayMs = 150
 ): Promise<boolean> {
   for (let i = 0; i < maxAttempts; i++) {
     if (await acquireLock(key, ttlMs)) return true
