@@ -29,3 +29,17 @@ export async function acquireLock(
 export async function releaseLock(key: string): Promise<void> {
   await redis.del(key)
 }
+
+// Retry acquiring lock — waits for the current holder to finish then checks stock
+export async function acquireLockWithRetry(
+  key: string,
+  ttlMs = 10_000,
+  maxAttempts = 6,
+  retryDelayMs = 100
+): Promise<boolean> {
+  for (let i = 0; i < maxAttempts; i++) {
+    if (await acquireLock(key, ttlMs)) return true
+    await new Promise((r) => setTimeout(r, retryDelayMs))
+  }
+  return false
+}

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { acquireLock, releaseLock } from '@/lib/redis'
+import { acquireLockWithRetry, releaseLock } from '@/lib/redis'
 import { ReserveRequestSchema } from '@/lib/schemas'
 import { getIdempotentResponse, saveIdempotentResponse } from '@/lib/idempotency'
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   const { productId, warehouseId, quantity } = parsed.data
   const lockKey = `lock:stock:${productId}:${warehouseId}`
 
-  const acquired = await acquireLock(lockKey)
+  const acquired = await acquireLockWithRetry(lockKey)
   if (!acquired) {
     return Response.json(
       { error: 'Server busy, please retry in a moment.' },
