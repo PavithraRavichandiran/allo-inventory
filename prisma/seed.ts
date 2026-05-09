@@ -102,7 +102,7 @@ async function main() {
           warehouseId: entry.warehouseId,
         },
       },
-      update: { total: entry.total },
+      update: { total: entry.total, reserved: entry.reserved },
       create: entry,
     })
   }
