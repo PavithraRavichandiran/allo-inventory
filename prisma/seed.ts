@@ -8,6 +8,10 @@ const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
+  // Clean up stale test data so reserved counts are accurate after re-seeding
+  await prisma.idempotencyKey.deleteMany({})
+  await prisma.reservation.deleteMany({})
+
   // Warehouses
   const mumbai = await prisma.warehouse.upsert({
     where: { id: 'wh-mumbai' },
