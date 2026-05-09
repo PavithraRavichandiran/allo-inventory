@@ -1,121 +1,175 @@
-# allo-inventory
-Inventory reservation system for multi-warehouse retail — built with Next.js, Prisma, Redis
-
 # Allo Inventory
 
 Inventory and order-fulfillment platform with race-condition-safe stock reservations for multi-warehouse retail.
 
+Built with Next.js 16 (App Router) · Prisma 7 · PostgreSQL (Supabase) · Redis (Upstash) · Zod · Tailwind CSS
+
 ---
 
-## Problem Understanding
+## Problem
 
-In high-concurrency checkout systems, payment confirmation may take several
-minutes due to 3DS authentication, UPI redirects, or wallet verification.
-
-During that window, thousands of users may attempt to purchase the same item.
+In high-concurrency checkout, payment confirmation can take several minutes (3DS, UPI, wallet redirects). During that window, many shoppers may attempt to buy the same item.
 
 Two naive approaches both fail:
 
-### 1. Decrement stock only after payment
-- Prevents abandoned-cart stock blocking
-- But allows overselling under concurrent checkout
+- **Decrement at payment** — allows two customers to pay for the same physical unit. Overselling.
+- **Decrement at add-to-cart** — 80% of carts are abandoned, so visible inventory tanks and conversion suffers.
 
-### 2. Decrement stock at add-to-cart
-- Prevents overselling
-- But heavily reduces visible inventory
-- Causes artificial stock depletion from abandoned carts
-
-## Proposed Solution
-
-Introduce a temporary inventory reservation during checkout.
-
-Reservation lifecycle:
-1. Customer initiates checkout
-2. Units are reserved for 10 minutes
-3. Payment success → reservation confirmed
-4. Payment failure/timeout → reservation released
-
-This balances:
-- inventory accuracy
-- checkout fairness
-- conversion rate
+**Solution:** A temporary reservation. When a customer proceeds to checkout, units are held for 10 minutes. Payment success confirms the hold permanently. Payment failure or timeout releases it back to available stock.
 
 ---
 
-## Core Concurrency Challenge
+## How it works
 
-If two customers attempt to reserve the final unit simultaneously,
-exactly one request must succeed.
+### Reservation lifecycle
 
-A naive read-then-write flow is unsafe:
+```
+checkout initiated
+      ↓
+POST /api/reservations       ← Redis lock ensures exactly one wins
+      ↓
+PENDING (10 min window)
+      ↓
+POST /api/reservations/:id/confirm   → CONFIRMED  (stock permanently decremented)
+POST /api/reservations/:id/release   → RELEASED   (stock returned to available)
+expiresAt passed (no action)         → RELEASED via expiry mechanism
+```
 
-1. Request A reads stock = 1
-2. Request B reads stock = 1
-3. Both reserve successfully
-4. Inventory becomes negative
+### Concurrency guarantee
 
-This is a classic race condition and requires atomic coordination.
+If two requests arrive simultaneously for the last unit of a SKU, exactly one succeeds. The mechanism:
 
----
+1. Acquire a Redis lock keyed to `lock:stock:{productId}:{warehouseId}` using `SET NX PX` (atomic, expires in 10s)
+2. Read current `stock.total - stock.reserved`
+3. If sufficient: create reservation + increment `stock.reserved` in a Postgres transaction
+4. Release lock
 
-## Architecture Decisions
-
-### Next.js App Router
-Used for full-stack API + frontend development with a single deployment target.
-
-### Prisma + Postgres
-Provides transactional guarantees and type-safe database access.
-
-### Redis Distributed Locking
-A per-product lock using `SET NX EX` ensures only one reservation flow
-can mutate inventory at a time across distributed instances.
-
-### Zod Validation
-Shared runtime validation between frontend forms and API routes.
-
-### Tailwind + shadcn/ui
-Used for rapid UI development with accessible components.
+The second concurrent request either finds the lock held (returns 503, client retries) or finds no available stock after the lock is released (returns 409).
 
 ---
 
-## Reservation Strategy
+## Running locally
 
-1. Acquire Redis lock
-2. Start Prisma transaction
-3. Validate available inventory
-4. Create reservation
-5. Increment reserved quantity
-6. Release lock
+### Prerequisites
+
+- Node.js 20+
+- A hosted PostgreSQL instance (Supabase, Neon, or Railway)
+- A Redis instance (Upstash)
+
+### 1. Clone and install
+
+```bash
+git clone <repo-url>
+cd allo-inventory
+npm install
+```
+
+### 2. Environment variables
+
+Create a `.env` file at the project root:
+
+```env
+DATABASE_URL="postgresql://..."   # Supabase / Neon / Railway connection string
+REDIS_URL="rediss://..."          # Upstash Redis URL
+```
+
+### 3. Run migrations
+
+```bash
+npx prisma migrate deploy
+```
+
+### 4. Seed the database
+
+```bash
+npm run seed
+```
+
+Seeds 3 warehouses, 4 products, and 12 stock entries. Includes intentional edge cases: one warehouse with 0 stock, one with 1 unit (for concurrency testing).
+
+### 5. Start the dev server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## Expiration Handling
+## Expiry mechanism in production
 
-Reservations include an `expiresAt` timestamp.
+Reservations that are not confirmed before `expiresAt` must be released so units return to available stock.
 
-Expired reservations are released using:
-- lazy cleanup during reads
-- optional production cron worker (Vercel Cron / queue worker)
+### Primary: lazy cleanup on read
+
+Every call to `GET /api/products` triggers `expireReservations()` before returning data. This finds all `PENDING` reservations past their `expiresAt`, marks them `RELEASED`, and decrements `stock.reserved` in a single transaction. No background process required.
+
+**Why this works:** The products page is the entry point for all shoppers. It is called frequently — any expired reservation is cleaned up within one browsing session.
+
+### Secondary: scheduled cleanup via Vercel Cron
+
+A dedicated endpoint at `GET /api/cron/expire` runs the same cleanup. In production, add this to `vercel.json`:
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/expire",
+      "schedule": "* * * * *"
+    }
+  ]
+}
+```
+
+This runs every minute as a safety net, catching expired reservations even when no user is actively browsing.
 
 ---
 
-## Planned Improvements
+## Idempotency (bonus)
 
-- Background reservation cleanup worker
-- Idempotent payment confirmation
-- Reservation event audit log
-- Metrics + observability
-- Multi-region lock strategy
-- Load testing for concurrent reservations
+The `POST /api/reservations` and `POST /api/reservations/:id/confirm` endpoints support the `Idempotency-Key` header.
+
+If a client retries with the same key, the server returns the original response without repeating the side effect. The key and response body are stored in the `IdempotencyKey` table. Only successful (2xx) responses are cached — errors like 409 are not stored, so clients can retry freely if stock becomes available.
+
+```bash
+curl -X POST http://localhost:3000/api/reservations \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: <uuid>" \
+  -d '{"productId":"...","warehouseId":"...","quantity":1}'
+```
 
 ---
 
-## Status
+## API reference
 
-- [x] Project setup
-- [ ] Database schema
-- [ ] Reservation engine
-- [ ] Redis locking
-- [ ] API routes
-- [ ] Frontend
-- [ ] Deployment
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/products` | List products with available stock per warehouse |
+| GET | `/api/warehouses` | List warehouses |
+| POST | `/api/reservations` | Reserve units. 409 if insufficient stock |
+| POST | `/api/reservations/:id/confirm` | Confirm reservation. 410 if expired |
+| POST | `/api/reservations/:id/release` | Release reservation early |
+| GET | `/api/cron/expire` | Trigger expiry cleanup (for Vercel Cron) |
+
+---
+
+## Trade-offs and what I'd do differently
+
+**Redis lock TTL**
+The lock TTL is 10s. For a DB operation that completes in milliseconds, this is conservative. A tighter TTL (2–3s) would reduce worst-case head-of-line blocking. I kept 10s to avoid lock expiry under a slow database.
+
+**503 on lock contention vs. retry**
+When the lock is held, I return 503 rather than waiting and retrying. A short retry loop (e.g., 3× with 100ms backoff) would give a better experience for the client, but adds complexity. With more time I'd implement this.
+
+**Lazy cleanup only — no queue**
+The lazy cleanup approach works well under normal traffic but has a gap: if no one browses the product listing for a long time, reservations stay logically held even after expiry. The Vercel Cron endpoint closes this gap in production.
+
+**No quantity selector on the listing page**
+The Reserve button always reserves 1 unit. Adding a quantity input would be a straightforward extension but is out of scope for this exercise.
+
+**No authentication**
+Reservations are not tied to a user session. In production, you'd associate each reservation with a user ID and gate the confirm/release endpoints on ownership.
+
+**Lock is not re-entrant**
+If the same server process tries to acquire a lock it already holds (e.g., nested call), it will return false. This is fine for the current linear flow but worth noting.
