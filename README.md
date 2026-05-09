@@ -116,13 +116,13 @@ A dedicated endpoint at `GET /api/cron/expire` runs the same cleanup. In product
   "crons": [
     {
       "path": "/api/cron/expire",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
 ```
 
-This runs every minute as a safety net, catching expired reservations even when no user is actively browsing.
+This runs daily as a safety net, catching expired reservations even when no user is actively browsing. (Vercel Hobby plan limits cron frequency to once per day.)
 
 ---
 
