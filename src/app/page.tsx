@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import ReserveButton from './components/ReserveButton'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ProductsPage() {
   const products = await prisma.product.findMany({
     include: {
