@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
+import { expireReservations } from '@/lib/expireReservations'
 
 export async function GET() {
+  await expireReservations()
   const products = await prisma.product.findMany({
     include: {
       stocks: {
