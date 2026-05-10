@@ -34,8 +34,12 @@ export default async function ReservationsPage() {
           <h1 className="text-2xl font-bold">All Reservations</h1>
           <p className="text-sm text-gray-500 mt-0.5">{reservations.length} total</p>
         </div>
-        <Link href="/" className="text-sm text-indigo-600 hover:underline">
-          ← Products
+        <Link
+          href="/"
+          className="inline-flex items-center px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
+          style={{ color: '#572AC8', borderColor: '#572AC8' }}
+        >
+          Back to Products
         </Link>
       </div>
 
@@ -80,8 +84,12 @@ export default async function ReservationsPage() {
                   </td>
                   <td className="py-3 text-right">
                     {r.status === 'PENDING' && (
-                      <Link href={`/reservations/${r.id}`} className="text-indigo-600 hover:underline text-xs">
-                        View →
+                      <Link
+                        href={`/reservations/${r.id}`}
+                        className="inline-flex items-center px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors"
+                        style={{ color: '#572AC8', borderColor: '#572AC8' }}
+                      >
+                        View
                       </Link>
                     )}
                   </td>

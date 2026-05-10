@@ -44,6 +44,22 @@ export default async function ProductsPage() {
               {/* Product header */}
               <div className="px-6 pt-5 pb-4 border-b border-slate-100">
                 <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4 flex-1 min-w-0">
+                    {/* Image or placeholder */}
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="w-16 h-16 rounded-xl object-cover shrink-0 border border-slate-100"
+                      />
+                    ) : (
+                      <div
+                        className="w-16 h-16 rounded-xl shrink-0 flex items-center justify-center text-white text-2xl font-bold"
+                        style={{ backgroundColor: '#6E42E5' }}
+                      >
+                        {product.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                       <h2 className="text-lg font-semibold" style={{ color: '#21143F' }}>{product.name}</h2>
@@ -61,6 +77,7 @@ export default async function ProductsPage() {
                     {product.description && (
                       <p className="text-sm text-slate-500">{product.description}</p>
                     )}
+                  </div>
                   </div>
                   <div className="text-right shrink-0">
                     <span className="text-2xl font-bold" style={{ color: '#6E42E5' }}>

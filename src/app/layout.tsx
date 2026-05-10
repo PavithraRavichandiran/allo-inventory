@@ -35,16 +35,16 @@ export default function RootLayout({
               />
               
             </Link>
-            <nav className="flex items-center gap-1">
+            <nav className="flex items-center gap-4">
               <Link
                 href="/"
-                className="px-3 py-1.5 text-sm text-[#572AC8] hover:text-[#21143F] hover:bg-slate-100 rounded-md transition-colors"
+                className="text-sm font-medium text-[#0F0F0F] hover:text-[#6E42E5] transition-colors"
               >
                 Products
               </Link>
               <Link
                 href="/reservations"
-                className="px-3 py-1.5 text-sm text-[#572AC8] hover:text-[#21143F] hover:bg-slate-100 rounded-md transition-colors"
+                className="text-sm font-medium text-[#0F0F0F] hover:text-[#6E42E5] transition-colors"
               >
                 Reservations
               </Link>

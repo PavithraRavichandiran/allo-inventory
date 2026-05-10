@@ -83,8 +83,12 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
 
   return (
     <main className="max-w-lg mx-auto px-4 py-10">
-      <Link href="/" className="text-sm hover:underline mb-6 inline-block" style={{ color: '#572AC8' }}>
-        ← Back to products
+      <Link
+        href="/"
+        className="inline-flex items-center px-4 py-2 mb-6 rounded-lg border text-sm font-medium transition-colors"
+        style={{ color: '#572AC8', borderColor: '#572AC8' }}
+      >
+        Back to products
       </Link>
 
       <div className="border border-gray-200 rounded-xl p-6 shadow-sm">

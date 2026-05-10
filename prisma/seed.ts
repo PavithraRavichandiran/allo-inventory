@@ -35,42 +35,46 @@ async function main() {
   const products = await Promise.all([
     prisma.product.upsert({
       where: { id: 'prod-testosterone' },
-      update: {},
+      update: { imageUrl: 'https://images.unsplash.com/photo-1709976142774-ce1ef41a8378?fm=jpg&q=60&w=400&auto=format&fit=crop' },
       create: {
         id: 'prod-testosterone',
         name: 'Testosterone Support Pack',
         description: 'Monthly supplement pack for hormonal balance and energy.',
         price: 1299,
+        imageUrl: 'https://images.unsplash.com/photo-1709976142774-ce1ef41a8378?fm=jpg&q=60&w=400&auto=format&fit=crop',
       },
     }),
     prisma.product.upsert({
       where: { id: 'prod-sleep' },
-      update: {},
+      update: { imageUrl: 'https://images.unsplash.com/photo-1596177583101-26b7dada4f5c?fm=jpg&q=60&w=400&auto=format&fit=crop' },
       create: {
         id: 'prod-sleep',
         name: 'Deep Sleep Formula',
         description: 'Clinician-formulated blend for restful sleep.',
         price: 799,
+        imageUrl: 'https://images.unsplash.com/photo-1596177583101-26b7dada4f5c?fm=jpg&q=60&w=400&auto=format&fit=crop',
       },
     }),
     prisma.product.upsert({
       where: { id: 'prod-hairfall' },
-      update: {},
+      update: { imageUrl: 'https://images.unsplash.com/photo-1729703551867-89f5e3469bd9?fm=jpg&q=60&w=400&auto=format&fit=crop' },
       create: {
         id: 'prod-hairfall',
         name: 'Hair Fall Control Kit',
         description: 'DHT-blocking topical + oral combination kit.',
         price: 1899,
+        imageUrl: 'https://images.unsplash.com/photo-1729703551867-89f5e3469bd9?fm=jpg&q=60&w=400&auto=format&fit=crop',
       },
     }),
     prisma.product.upsert({
       where: { id: 'prod-weight' },
-      update: {},
+      update: { imageUrl: 'https://images.unsplash.com/photo-1729704200257-f0a9265d4b1b?fm=jpg&q=60&w=400&auto=format&fit=crop' },
       create: {
         id: 'prod-weight',
         name: 'Weight Management Bundle',
         description: 'Metabolism booster with dietary guidance booklet.',
         price: 2199,
+        imageUrl: 'https://images.unsplash.com/photo-1729704200257-f0a9265d4b1b?fm=jpg&q=60&w=400&auto=format&fit=crop',
       },
     }),
   ])
