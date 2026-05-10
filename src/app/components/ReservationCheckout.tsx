@@ -83,7 +83,7 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
 
   return (
     <main className="max-w-lg mx-auto px-4 py-10">
-      <Link href="/" className="text-sm text-indigo-600 hover:underline mb-6 inline-block">
+      <Link href="/" className="text-sm hover:underline mb-6 inline-block" style={{ color: '#572AC8' }}>
         ← Back to products
       </Link>
 
@@ -91,7 +91,7 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="text-xl font-bold">{reservation.product.name}</h1>
+            <h1 className="text-xl font-bold" style={{ color: '#21143F' }}>{reservation.product.name}</h1>
             {reservation.product.description && (
               <p className="text-sm text-gray-500 mt-0.5">{reservation.product.description}</p>
             )}
@@ -112,7 +112,7 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
           </div>
           <div>
             <dt className="text-gray-400">Price</dt>
-            <dd className="font-medium text-indigo-600">
+            <dd className="font-medium" style={{ color: '#6E42E5' }}>
               ₹{reservation.product.price.toLocaleString('en-IN')}
             </dd>
           </div>
@@ -143,8 +143,8 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
         {/* Confirmed / Released states */}
         {status === 'CONFIRMED' && (
           <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-center mb-6">
-            <p className="text-green-700 font-medium">Payment confirmed — order placed!</p>
-            <p className="text-sm text-green-600 mt-1">
+            <p className="font-medium" style={{ color: '#0D6027' }}>Payment confirmed — order placed!</p>
+            <p className="text-sm mt-1" style={{ color: '#0D6027' }}>
               Your units have been permanently reserved.
             </p>
           </div>
@@ -172,7 +172,10 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
             <button
               onClick={handleConfirm}
               disabled={!!loading}
-              className="flex-1 py-2.5 rounded-lg bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 py-2.5 rounded-lg text-white font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              style={{ backgroundColor: '#6E42E5' }}
+              onMouseEnter={e => !loading && ((e.currentTarget as HTMLButtonElement).style.backgroundColor = '#572AC8')}
+              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = '#6E42E5')}
             >
               {loading === 'confirm' ? 'Confirming…' : 'Confirm purchase'}
             </button>
@@ -193,7 +196,8 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
             </p>
             <Link
               href="/"
-              className="inline-block px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
+              className="inline-block px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+              style={{ backgroundColor: '#6E42E5' }}
             >
               Browse products
             </Link>
@@ -207,11 +211,12 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
 function StatusBadge({ status }: { status: 'PENDING' | 'CONFIRMED' | 'RELEASED' }) {
   const styles = {
     PENDING: 'bg-amber-100 text-amber-700',
-    CONFIRMED: 'bg-green-100 text-green-700',
+    CONFIRMED: 'bg-green-100',
     RELEASED: 'bg-gray-100 text-gray-500',
   }
+  const confirmedStyle = status === 'CONFIRMED' ? { color: '#0D6027' } : undefined
   return (
-    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${styles[status]}`}>
+    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${styles[status]}`} style={confirmedStyle}>
       {status.charAt(0) + status.slice(1).toLowerCase()}
     </span>
   )

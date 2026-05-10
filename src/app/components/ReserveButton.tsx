@@ -50,7 +50,10 @@ export default function ReserveButton({
       <button
         onClick={handleReserve}
         disabled={loading}
-        className="px-3 py-1.5 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="px-3 py-1.5 text-sm font-medium rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        style={{ backgroundColor: '#6E42E5' }}
+        onMouseEnter={e => !loading && ((e.currentTarget as HTMLButtonElement).style.backgroundColor = '#572AC8')}
+        onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = '#6E42E5')}
       >
         {loading ? 'Reserving…' : 'Reserve'}
       </button>
