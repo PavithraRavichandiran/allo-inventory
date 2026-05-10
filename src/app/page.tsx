@@ -92,7 +92,6 @@ export default async function ProductsPage() {
               <div className="divide-y divide-slate-50">
                 {product.stocks.map((stock) => {
                   const available = stock.total - stock.reserved
-                  const pct = stock.total > 0 ? (available / stock.total) * 100 : 0
 
                   return (
                     <div key={stock.warehouseId} className="px-6 py-3.5 flex items-center gap-4">
@@ -117,21 +116,6 @@ export default async function ProductsPage() {
                           <span className="text-xs text-slate-400">{stock.warehouse.location}</span>
                         </div>
                         <div className="mt-1.5 flex items-center gap-2">
-                          <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all ${
-                                available === 0
-                                  ? 'bg-red-400'
-                                  : available <= 3
-                                  ? 'bg-amber-400'
-                                  : ''
-                              }`}
-                              style={{
-                                width: `${pct}%`,
-                                ...(available > 3 ? { backgroundColor: '#0D6027' } : {}),
-                              }}
-                            />
-                          </div>
                           <span
                             className={available === 0 ? 'text-xs font-medium text-red-500' : available <= 3 ? 'text-xs font-medium text-amber-600' : 'text-xs font-medium'}
                             style={available > 3 ? { color: '#0D6027' } : undefined}
