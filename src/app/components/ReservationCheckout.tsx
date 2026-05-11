@@ -112,7 +112,7 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
 
         <div className="px-6 py-5">
           {/* Details */}
-          <dl className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm mb-6">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 text-sm mb-6">
             <div>
               <dt className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Warehouse</dt>
               <dd className="font-medium" style={{ color: '#21143F' }}>{reservation.warehouse.name}</dd>
@@ -200,7 +200,7 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
 
           {/* Actions — pending & active */}
           {isPending && !isExpired && (
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleConfirm}
                 disabled={!!loading}

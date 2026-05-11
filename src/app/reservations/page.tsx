@@ -55,7 +55,7 @@ export default async function ReservationsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <p className="text-xs font-medium text-slate-500 mb-0.5">Pending</p>
           <p className="text-2xl font-bold text-amber-600">{pending}</p>
