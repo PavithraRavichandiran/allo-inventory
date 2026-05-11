@@ -148,6 +148,7 @@ curl -X POST http://localhost:3000/api/reservations \
 | GET | `/api/products` | List products with available stock per warehouse |
 | GET | `/api/warehouses` | List warehouses |
 | POST | `/api/reservations` | Reserve units. 409 if insufficient stock |
+| PATCH | `/api/reservations/:id` | Update quantity on a pending reservation |
 | POST | `/api/reservations/:id/confirm` | Confirm reservation. 410 if expired |
 | POST | `/api/reservations/:id/release` | Release reservation early |
 | GET | `/api/cron/expire` | Trigger expiry cleanup (for Vercel Cron) |
@@ -165,8 +166,8 @@ When the lock is held, I return 503 rather than waiting and retrying. A short re
 **Lazy cleanup only — no queue**
 The lazy cleanup approach works well under normal traffic but has a gap: if no one browses the product listing for a long time, reservations stay logically held even after expiry. The Vercel Cron endpoint closes this gap in production.
 
-**No quantity selector on the listing page**
-The Reserve button always reserves 1 unit. Adding a quantity input would be a straightforward extension but is out of scope for this exercise.
+**Quantity adjustment**
+Users can select quantity before reserving on the listing page, and adjust it on the checkout page before confirming. Adjustments use a PATCH endpoint that re-acquires the stock lock and recalculates the diff atomically.
 
 **No authentication**
 Reservations are not tied to a user session. In production, you'd associate each reservation with a user ID and gate the confirm/release endpoints on ownership.

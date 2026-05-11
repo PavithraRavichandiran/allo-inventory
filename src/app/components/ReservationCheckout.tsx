@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 type Reservation = {
@@ -20,9 +20,19 @@ function formatCountdown(ms: number) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 }
 
-export default function ReservationCheckout({ reservation }: { reservation: Reservation }) {
+export default function ReservationCheckout({
+  reservation,
+  maxQuantity,
+}: {
+  reservation: Reservation
+  maxQuantity: number
+}) {
   const [status, setStatus] = useState(reservation.status)
+  const [quantity, setQuantity] = useState(reservation.quantity)
+  const [savingQty, setSavingQty] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastSavedQtyRef = useRef(reservation.quantity)
   const [loading, setLoading] = useState<'confirm' | 'cancel' | null>(null)
   const [remaining, setRemaining] = useState(
     new Date(reservation.expiresAt).getTime() - Date.now()
@@ -59,6 +69,30 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
       )
     }
     setLoading(null)
+  }
+
+  function handleQuantityChange(newQty: number) {
+    if (newQty < 1 || newQty > maxQuantity || savingQty) return
+    setQuantity(newQty)
+    setError(null)
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      setSavingQty(true)
+      const res = await fetch(`/api/reservations/${reservation.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: newQty }),
+      })
+      if (res.ok) {
+        lastSavedQtyRef.current = newQty
+      } else {
+        const data = await res.json()
+        setError(data.error ?? 'Could not update quantity.')
+        setQuantity(lastSavedQtyRef.current)
+      }
+      setSavingQty(false)
+    }, 600)
   }
 
   async function handleCancel() {
@@ -99,11 +133,11 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
             </div>
             <div className="text-right shrink-0">
               <p className="text-2xl font-bold" style={{ color: '#6E42E5' }}>
-                ₹{(reservation.product.price * reservation.quantity).toLocaleString('en-IN')}
+                ₹{(reservation.product.price * quantity).toLocaleString('en-IN')}
               </p>
-              {reservation.quantity > 1 && (
+              {quantity > 1 && (
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {reservation.quantity} × ₹{reservation.product.price.toLocaleString('en-IN')}
+                  {quantity} × ₹{reservation.product.price.toLocaleString('en-IN')}
                 </p>
               )}
             </div>
@@ -120,7 +154,31 @@ export default function ReservationCheckout({ reservation }: { reservation: Rese
             </div>
             <div>
               <dt className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Quantity</dt>
-              <dd className="font-medium" style={{ color: '#21143F' }}>{reservation.quantity} unit{reservation.quantity !== 1 ? 's' : ''}</dd>
+              {isPending ? (
+                <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center rounded-lg border border-slate-300 bg-white">
+                    <button
+                      onClick={() => handleQuantityChange(quantity - 1)}
+                      disabled={savingQty || quantity <= 1}
+                      className="w-8 h-8 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed rounded-l-lg transition-colors"
+                    >
+                      &minus;
+                    </button>
+                    <span className="w-8 text-center text-sm font-semibold text-slate-800 tabular-nums select-none border-x border-slate-300">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() => handleQuantityChange(quantity + 1)}
+                      disabled={savingQty || quantity >= maxQuantity}
+                      className="w-8 h-8 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed rounded-r-lg transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <dd className="font-medium" style={{ color: '#21143F' }}>{quantity} unit{quantity !== 1 ? 's' : ''}</dd>
+              )}
             </div>
             <div className="col-span-2">
               <dt className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Reservation ID</dt>

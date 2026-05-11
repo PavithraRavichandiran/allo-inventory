@@ -12,8 +12,22 @@ export default async function ReservationPage(props: PageProps<'/reservations/[i
 
   if (!reservation) notFound()
 
+  const stock = await prisma.stock.findUnique({
+    where: {
+      productId_warehouseId: {
+        productId: reservation.productId,
+        warehouseId: reservation.warehouseId,
+      },
+    },
+  })
+
+  // Available extra = units not yet reserved (reservation already holds its own qty)
+  const extraAvailable = stock ? stock.total - stock.reserved : 0
+  const maxQuantity = reservation.quantity + extraAvailable
+
   return (
     <ReservationCheckout
+      maxQuantity={maxQuantity}
       reservation={{
         id: reservation.id,
         quantity: reservation.quantity,
