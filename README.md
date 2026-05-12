@@ -160,8 +160,8 @@ curl -X POST http://localhost:3000/api/reservations \
 **Redis lock TTL**
 The lock TTL is 10s. For a DB operation that completes in milliseconds, this is conservative. A tighter TTL (2–3s) would reduce worst-case head-of-line blocking. I kept 10s to avoid lock expiry under a slow database.
 
-**503 on lock contention vs. retry**
-When the lock is held, I return 503 rather than waiting and retrying. A short retry loop (e.g., 3× with 100ms backoff) would give a better experience for the client, but adds complexity. With more time I'd implement this.
+**503 on lock exhaustion, not on first contention**
+When the lock is held, the server retries up to 20 times with 150ms backoff (~3s total) before returning 503. In practice, concurrent requests on the same SKU resolve within 1–2 retries — Request B waits for Request A to finish, re-reads stock, and gets a 409 if stock is gone. The 503 is only returned if the lock is held for the full 3 seconds, which indicates a genuinely abnormal condition (crashed process, network partition).
 
 **Lazy cleanup only — no queue**
 The lazy cleanup approach works well under normal traffic but has a gap: if no one browses the product listing for a long time, reservations stay logically held even after expiry. The Vercel Cron endpoint closes this gap in production.
